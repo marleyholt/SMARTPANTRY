@@ -95,7 +95,6 @@
     <!-- ========================================== -->
     <section id="app-container" class="hidden min-h-screen bg-gray-50 pb-24">
         
-        <!-- Navbar Global -->
         <nav class="bg-indigo-900 text-white p-4 shadow-lg sticky top-0 z-40">
             <div class="container mx-auto flex justify-between items-center">
                 <div class="flex items-center gap-4">
@@ -384,7 +383,7 @@
         });
 
         // =========================================================================
-        // CONFIGURAÇÃO DO FIREBASE (Produção)
+        // CONFIGURAÇÃO DO FIREBASE E CHAVES
         // =========================================================================
         const firebaseConfig = {
             apiKey: "AIzaSyDuSFFAJ6fECmjDpjnEuRuxy_snas7N4XU",
@@ -396,7 +395,8 @@
             measurementId: "G-ZFND4W1PVW"
         };
        
-        const GEMINI_API_KEY = "1BfTNaFrRAM48kqJJwZ55pc63XIi-6Tu2oGUhospYHqs"; 
+        // A chave API do Gemini atualizada conforme sua indicação (substituí a chave inválida por esta que funcionava no seu código)
+        const GEMINI_API_KEY = "AIzaSyAfuowioWSmyJjoJ99VR0olaMcRrCnJBgI"; 
 
         let app, db, auth, analytics;
         if (typeof __firebase_config !== 'undefined') {
