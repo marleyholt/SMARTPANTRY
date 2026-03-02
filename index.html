@@ -95,6 +95,7 @@
     <!-- ========================================== -->
     <section id="app-container" class="hidden min-h-screen bg-gray-50 pb-24">
         
+        <!-- Navbar Global -->
         <nav class="bg-indigo-900 text-white p-4 shadow-lg sticky top-0 z-40">
             <div class="container mx-auto flex justify-between items-center">
                 <div class="flex items-center gap-4">
@@ -154,7 +155,6 @@
 
             <!-- VISTA 3: LISTA DE COMPRAS -->
             <div id="view-lista" class="space-y-4 hidden pb-16">
-                <!-- Vazia -->
                 <div id="lista-vazia" class="hidden flex flex-col items-center justify-center py-12 text-center bg-white rounded-2xl shadow-sm border border-gray-100">
                     <div class="w-24 h-24 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center text-4xl mb-4"><i class="fa-solid fa-cart-arrow-down"></i></div>
                     <h3 class="text-xl font-bold text-gray-800 mb-2">Lista Vazia</h3>
@@ -163,7 +163,6 @@
                         <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Sugestão com IA
                     </button>
                 </div>
-                <!-- Edição -->
                 <div id="lista-edicao" class="hidden space-y-4">
                     <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-xl flex items-start gap-3 shadow-sm">
                         <i class="fa-solid fa-lightbulb text-yellow-500 mt-1"></i>
@@ -174,7 +173,6 @@
                         <i class="fa-solid fa-floppy-disk mr-2"></i> Confirmar e Iniciar Compras
                     </button>
                 </div>
-                <!-- Carrinho -->
                 <div id="lista-ativa" class="hidden space-y-4">
                     <div class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white p-4 rounded-xl flex justify-between items-center shadow-md">
                         <div><h4 class="font-bold text-lg">Modo Mercado</h4><p class="text-xs text-indigo-200">Marque o que for colocando no carrinho.</p></div>
@@ -251,7 +249,7 @@
         </div>
     </section>
 
-    <!-- MODAIS RESTANTES (MENU, PERFIL, NF, NOVO ITEM, LOADER) -->
+    <!-- MENU LATERAL -->
     <div id="sidebarOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[60] hidden transition-opacity" onclick="window.toggleSidebar()"></div>
     <div id="sidebar" class="fixed top-0 left-0 w-72 h-full bg-white shadow-2xl z-[70] transform -translate-x-full transition-transform duration-300 flex flex-col">
         <div class="p-6 bg-gradient-to-br from-indigo-900 to-indigo-800 text-white flex flex-col items-center relative shadow-inner">
@@ -365,6 +363,27 @@
         import { getFirestore, collection, doc, setDoc, getDocs, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
+        // SISTEMA DE LOGS (F12) PARA DEPURAR FALHAS
+        // =========================================================================
+        window.AppLogger = {
+            log: function(msg, data = '') {
+                console.log(`%c[SmartPantry INFO] %c${msg}`, 'color: #4F46E5; font-weight: bold;', 'color: inherit;', data);
+            },
+            error: function(context, err) {
+                console.error(`%c[SmartPantry ERROR] %c${context}`, 'color: #EF4444; font-weight: bold;', 'color: red;', err);
+                if (err && err.stack) console.error(err.stack);
+            }
+        };
+
+        window.onerror = function(message, source, lineno, colno, error) {
+            window.AppLogger.error("Erro Global Capturado", { message, source, lineno, error });
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            window.AppLogger.error("Promessa Rejeitada no Background", event.reason);
+        });
+
+        // =========================================================================
         // CONFIGURAÇÃO DO FIREBASE (Produção)
         // =========================================================================
         const firebaseConfig = {
@@ -426,11 +445,13 @@
         // --- SISTEMA DE AUTENTICAÇÃO FIREBASE ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                window.AppLogger.log("Utilizador autenticado no Firebase:", user.email);
                 window.alternarTelas('app-container', 'tela-login');
                 window.carregarPerfilGlobal(user);
                 window.mudarAba('dashboard'); 
                 window.carregarDadosGerais();
             } else {
+                window.AppLogger.log("Nenhum utilizador ativo. A mostrar ecrã de login.");
                 window.alternarTelas('tela-login', 'app-container');
             }
         });
@@ -459,6 +480,7 @@
         window.toggleSidebar = () => { document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('sidebarOverlay').classList.toggle('hidden'); };
 
         window.mudarAba = (viewId) => {
+            window.AppLogger.log("Mudar de aba para:", viewId);
             ['view-dashboard', 'view-despensa', 'view-lista', 'view-insights'].forEach(id => document.getElementById(id).classList.add('hidden'));
             document.getElementById(`view-${viewId}`).classList.remove('hidden');
             
@@ -495,14 +517,17 @@
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'; btn.disabled = true;
 
             try {
+                window.AppLogger.log("Tentativa de registo de nova conta:", email);
                 const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
                 await updateProfile(userCredential.user, { displayName: nome });
+                window.AppLogger.log("Conta criada com sucesso.");
                 alert("Conta SaaS criada com sucesso! Bem-vindo ao SmartPantry.");
                 window.alternarFormLogin(true);
                 document.getElementById('inputEmail').value = email;
                 document.getElementById('inputSenha').value = '';
             } catch (err) {
-                alert("Erro ao criar conta. O e-mail pode já estar em uso ou a senha é muito fraca.");
+                window.AppLogger.error("Erro na criação de conta", err);
+                alert("Erro ao criar conta. O e-mail pode já estar em uso ou a senha é muito fraca. Verifique os logs (F12).");
             } finally { btn.innerHTML = 'Criar Conta'; btn.disabled = false; }
         };
 
@@ -512,10 +537,14 @@
             const btn = document.getElementById('btnEntrar');
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'; btn.disabled = true;
             try {
+                window.AppLogger.log("A iniciar processo de login para:", e);
                 await signInWithEmailAndPassword(auth, e, s);
                 localStorage.setItem("comprai_email", e); 
                 localStorage.setItem("comprai_login_time", Date.now()); 
-            } catch (err) { alert("Credenciais inválidas."); } 
+            } catch (err) { 
+                window.AppLogger.error("Erro no login", err);
+                alert("Credenciais inválidas."); 
+            } 
             finally { btn.innerHTML = '<span>Entrar</span><i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>'; btn.disabled = false; }
         };
 
@@ -566,12 +595,15 @@
             try {
                 await updateProfile(auth.currentUser, { displayName: nome, photoURL: avatar });
                 window.carregarPerfilGlobal(auth.currentUser);
-            } catch(e) { alert("Erro ao sincronizar perfil."); } 
+            } catch(e) { 
+                window.AppLogger.error("Erro a salvar perfil", e);
+                alert("Erro ao sincronizar perfil."); 
+            } 
             finally { document.getElementById('loadingPerfil').classList.add('hidden'); window.fecharModal('modalPerfil'); }
         };
 
         // ==========================================
-        // MIGRAÇÃO DE DADOS 
+        // MIGRAÇÃO DE DADOS (COM LOGS DETALHADOS)
         // ==========================================
         window.migrarDadosDoSheets = async () => {
             if(!confirm("Atenção: Esta ação irá copiar os seus dados antigos do Google Sheets (Notas Fiscais, Despensa e Listas) para a sua nova conta no Firebase. Deseja continuar?")) return;
@@ -582,8 +614,32 @@
             btn.disabled = true;
 
             try {
+                window.AppLogger.log("Iniciando migração de dados do Google Sheets...");
+                window.AppLogger.log("Tentando ligar à URL da API:", API_URL);
+
                 const res = await fetch(`${API_URL}?action=get_dados_completos&t=${Date.now()}`);
-                const data = await res.json();
+                window.AppLogger.log("Resposta HTTP do servidor (Status):", res.status);
+                
+                // Em vez de converter direto para JSON, lemos como texto primeiro para detetar erros HTML
+                const textoResposta = await res.text();
+                
+                if (textoResposta.includes("<!DOCTYPE html>") || textoResposta.includes("<html")) {
+                    throw new Error("A API devolveu uma página HTML (provavelmente um ecrã de erro de login do Google) em vez de JSON. Verifique se o seu Google Apps Script está configurado com permissão 'Qualquer Pessoa'.");
+                }
+
+                let data;
+                try {
+                    data = JSON.parse(textoResposta);
+                    window.AppLogger.log("JSON Interpretado com sucesso. Registos encontrados:", {
+                        NF: data.nf ? data.nf.length : 0,
+                        Despensa: data.despensa ? data.despensa.length : 0,
+                        Lista: data.lista_ativa ? data.lista_ativa.length : 0
+                    });
+                } catch (parseError) {
+                    window.AppLogger.error("Falha ao analisar JSON da API antiga. Conteúdo recebido:", textoResposta.substring(0, 300) + '...');
+                    throw new Error("Os dados vindos da folha de cálculo estão num formato inválido.");
+                }
+
                 let promises = []; let count = 0;
 
                 if(data.nf && data.nf.length > 0) {
@@ -603,11 +659,19 @@
                 }
 
                 if(count > 0) {
+                    window.AppLogger.log(`A enviar ${count} documentos para o Firebase...`);
                     await Promise.all(promises); 
+                    window.AppLogger.log("Migração concluída com sucesso no Firebase.");
                     alert(`Sucesso! ${count} registos foram importados do Google Sheets para o Firebase.`);
                     window.carregarDadosGerais(); 
-                } else { alert("A sua planilha do Google estava vazia. Nenhum dado foi migrado."); }
-            } catch (error) { alert("Falha ao migrar os dados."); } 
+                } else { 
+                    window.AppLogger.log("Aviso: A planilha do Google estava vazia.");
+                    alert("A sua planilha do Google estava vazia. Nenhum dado foi migrado."); 
+                }
+            } catch (error) { 
+                window.AppLogger.error("Falha Crítica na Migração", error);
+                alert("Falha ao migrar os dados. Aconteceu um erro técnico. Pressione F12 para ver a aba 'Console' com os detalhes do erro."); 
+            } 
             finally { btn.innerHTML = originalHTML; btn.disabled = false; }
         };
 
@@ -616,6 +680,7 @@
             if(!auth.currentUser) return;
             document.getElementById('iconeSync').classList.add('fa-spin'); 
             document.getElementById('avisoDashboard').classList.remove('hidden');
+            window.AppLogger.log("A sincronizar dados da Firestore...");
             
             try {
                 const nfSnap = await getDocs(getCollection('dados_nf'));
@@ -640,9 +705,16 @@
                 if (abaAtual === 'Despensa Virtual') { window.preencherFiltroCategoriaDespensa(); }
                 if (abaAtual === 'Lista de Compras') { window.avaliarEstadoListaCompras(); }
                 if (abaAtual === 'Análise & Relatórios') { window.aplicarFiltrosInsights(); window.preencherSelectProdutos(); }
+                
+                window.AppLogger.log("Sincronização concluída", {
+                    NotasFiscais: dadosGlobais.length,
+                    Despensa: dadosDespensaGlobais.length,
+                    ItensNaLista: listaAtivaGlobais.length
+                });
 
             } catch (err) { 
-                document.getElementById('avisoDashboard').innerHTML = '<span class="text-red-600 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Erro ao sincronizar. Configure o Firebase no código.</span>';
+                window.AppLogger.error("Erro ao descarregar dados do Firestore", err);
+                document.getElementById('avisoDashboard').innerHTML = '<span class="text-red-600 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Erro ao sincronizar. Veja a consola (F12).</span>';
             } finally { 
                 document.getElementById('avisoDashboard').classList.add('hidden');
                 document.getElementById('iconeSync').classList.remove('fa-spin'); 
@@ -674,8 +746,8 @@
                     <td class="px-4 py-3 text-xs text-gray-500 truncate max-w-[120px]">${i.local || '-'}</td>
                     <td class="px-4 py-3 font-medium text-gray-900">${i.produto_padrao || i.produto_original}</td>
                     <td class="px-4 py-3 text-xs font-bold text-gray-600">${i.qtd} ${i.unidade}</td>
-                    <td class="px-4 py-3 text-right text-xs text-gray-500">${formatM(parseV(i.valor_unit))}</td>
-                    <td class="px-4 py-3 text-right font-bold text-indigo-600">${formatM(parseV(i.valor_total))}</td>
+                    <td class="px-4 py-3 text-right text-xs text-gray-500">${window.formatM(window.parseV(i.valor_unit))}</td>
+                    <td class="px-4 py-3 text-right font-bold text-indigo-600">${window.formatM(window.parseV(i.valor_total))}</td>
                 </tr>`).join('');
         };
 
@@ -737,6 +809,7 @@
         window.salvarDespensaBatch = async () => {
             const btn = document.getElementById('btnSalvarDespensa');
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> A guardar na nuvem...';
+            window.AppLogger.log("A iniciar gravação em lote da Despensa.");
             try {
                 const batch = writeBatch(db);
                 dadosDespensaGlobais.forEach(item => {
@@ -745,9 +818,13 @@
                     batch.set(docRef, { produto: item.produto, quantidade: item.qtd, categoria: item.categoria, unidade: item.unidade }, { merge: true });
                 });
                 await batch.commit();
+                window.AppLogger.log("Despensa atualizada com sucesso no Firebase.");
                 window.itensModificadosDespensa.clear(); 
                 document.getElementById('containerBtnSalvar').classList.add('hidden'); 
-            } catch(e) { alert("Erro ao guardar"); } 
+            } catch(e) { 
+                window.AppLogger.error("Erro ao guardar a despensa", e);
+                alert("Erro ao guardar. Pressione F12 para ver os logs."); 
+            } 
             finally { btn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-2"></i> Salvar Alterações na Despensa'; }
         };
 
@@ -761,15 +838,20 @@
 
         window.gerarListaIA = async () => {
             document.getElementById('loadingIATitulo').innerText = "A planear compras..."; document.getElementById('modalLoadingIA').classList.remove('hidden');
+            window.AppLogger.log("A solicitar nova lista de compras à IA...");
             try {
                 const despensaResumo = dadosDespensaGlobais.map(r => `${r.produto} (${r.qtd} ${r.unidade})`).join(", ");
                 const historicoResumo = dadosGlobais.slice(0, 80).map(r => `${r.produto_padrao} no ${r.local} a R$${r.valor_unit}`).join("; ");
                 const prompt = `Como assistente financeiro, crie uma Lista de Compras. Despensa: ${despensaResumo}. Histórico: ${historicoResumo}. Regras: Inclua itens com qtd 0 ou essenciais que faltam. Retorne ESTRITAMENTE array JSON: [{"produto":"Nome", "categoria":"Setor", "qtd":1, "unidade":"UN", "mercado":"Nome do Mercado", "justificativa":"Motivo"}]`;
                 
                 const lista = await chamarGemini(prompt);
+                window.AppLogger.log("A IA devolveu a lista:", lista);
                 if(lista && lista.length > 0) { listaIA_temporaria = lista; window.avaliarEstadoListaCompras(); }
-                else alert("Não existem necessidades de compra.");
-            } catch(e) { alert("Erro na IA: Verifique se inseriu a chave API."); } 
+                else alert("Não existem necessidades de compra no momento.");
+            } catch(e) { 
+                window.AppLogger.error("Falha ao gerar lista IA", e);
+                alert("Erro na IA. Pressione F12 para analisar os logs."); 
+            } 
             finally { document.getElementById('modalLoadingIA').classList.add('hidden'); }
         };
 
@@ -822,11 +904,15 @@
 
         window.salvarListaEditada = async () => {
             const btn = document.getElementById('btnSalvarListaIA'); btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> A gerar lista final...'; btn.disabled = true;
+            window.AppLogger.log("A guardar a lista confirmada...");
             try {
                 const idLista = Date.now().toString();
                 await setDoc(doc(getCollection('lista_compras'), idLista), { id_lista: idLista, status: 'ativa', itens: listaIA_temporaria });
+                window.AppLogger.log("Lista guardada com ID:", idLista);
                 listaIA_temporaria = []; window.carregarDadosGerais(); 
-            } catch(e) { alert("Erro ao guardar."); btn.innerHTML = 'Confirmar e Iniciar Compras'; btn.disabled = false;}
+            } catch(e) { 
+                window.AppLogger.error("Falha ao criar o documento da lista", e);
+                alert("Erro ao guardar lista no Firebase."); btn.innerHTML = 'Confirmar e Iniciar Compras'; btn.disabled = false;}
         };
 
         window.renderListaAtiva = () => {
@@ -860,7 +946,12 @@
         window.toggleCheckItem = async (globalIdx) => {
             const item = listaAtivaGlobais[globalIdx];
             item.check = !item.check; window.renderListaAtiva(); 
-            if (listaAtivaGlobais.length > 0) { const idL = listaAtivaGlobais[0].id_lista || listaAtivaGlobais[0].id_lista_vinculada; await updateDoc(doc(getCollection('lista_compras'), idL), { itens: listaAtivaGlobais }); }
+            if (listaAtivaGlobais.length > 0) { 
+                try {
+                    const idL = listaAtivaGlobais[0].id_lista || listaAtivaGlobais[0].id_lista_vinculada; 
+                    await updateDoc(doc(getCollection('lista_compras'), idL), { itens: listaAtivaGlobais }); 
+                } catch(e) { window.AppLogger.error("Erro a atualizar o check do item", e); }
+            }
         };
 
         window.fecharSacola = () => { document.querySelectorAll('.item-compra').forEach(el => { if(el.getAttribute('data-checked') === 'true') el.classList.toggle('hidden'); }); };
@@ -869,10 +960,11 @@
             const faltam = listaAtivaGlobais.filter(i => !i.check).length;
             if(!confirm(faltam > 0 ? `Faltam ${faltam} itens. Deseja finalizar?` : "Ótimo! Tudo comprado. Deseja finalizar a lista?")) return;
             try {
+                window.AppLogger.log("A finalizar lista de compras...");
                 const idL = listaAtivaGlobais[0].id_lista;
                 await updateDoc(doc(getCollection('lista_compras'), idL), { status: 'finalizada' });
                 listaAtivaGlobais = []; window.avaliarEstadoListaCompras(); alert("Lista finalizada! Envie o cupom fiscal para a IA analisar os gastos."); window.carregarDadosGerais();
-            } catch(e) {}
+            } catch(e) { window.AppLogger.error("Erro ao finalizar a lista", e); }
         };
 
         // --- LEITURA DO CUPOM E CHECKBOX DE VÍNCULO ---
@@ -895,7 +987,7 @@
                 spanId.classList.remove('text-indigo-600'); spanId.classList.add('text-red-400'); spanId.classList.remove('hidden');
                 checkVinculo.dataset.idLista = "";
             }
-            window.fecharModal('modalNovoItemLista'); // Caso estivesse aberto
+            window.fecharModal('modalNovoItemLista'); 
             document.getElementById('modalUploadNF').classList.remove('hidden');
         };
 
@@ -905,12 +997,14 @@
             const vincularId = (checkVinculo && checkVinculo.checked && !checkVinculo.disabled) ? checkVinculo.dataset.idLista : null;
             document.getElementById('loadingIATitulo').innerText = "A processar a Fatura..."; document.getElementById('modalLoadingIA').classList.remove('hidden');
             
+            window.AppLogger.log("A preparar imagem para a IA Gemini...");
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
                     const prompt = `Extrai os produtos desta fatura/talão e devolve array JSON: {"data": "YYYY-MM-DD", "local": "Nome", "produto_original": "Nome original", "produto_padrao": "Nome limpo", "qtd": 1.0, "unidade": "UN ou KG", "valor_unit": 10.50, "valor_total": 10.50, "categoria": "Açougue"}. Categorias: Açougue, Hortifruti, Mercearia, Limpeza, Higiene, Bebidas, Padaria, Laticínios, Congelados, Embalagens, Outros.`;
                     const itens = await chamarGemini(prompt, "application/json", e.target.result.split(',')[1]);
                     
+                    window.AppLogger.log("Resposta Gemini (Itens extraídos):", itens);
                     const batch = writeBatch(db);
                     itens.forEach(item => {
                         const safeIdProd = item.produto_padrao.replace(/[^a-zA-Z0-9]/g, '_');
@@ -921,8 +1015,12 @@
                         batch.set(doc(getCollection('despensa'), safeIdProd), { produto: item.produto_padrao, quantidade: novaQtd.toString(), categoria: item.categoria, unidade: item.unidade }, { merge: true });
                     });
                     await batch.commit();
+                    window.AppLogger.log("Nota Fiscal inserida no banco Firebase com sucesso!");
                     alert("Fatura processada! Os dados foram guardados na nuvem."); window.carregarDadosGerais();
-                } catch(err) { alert("Erro de comunicação com a IA."); } 
+                } catch(err) { 
+                    window.AppLogger.error("Erro na leitura da Fatura ou Escrita no Banco", err);
+                    alert("Erro ao processar Fatura. Verifique os Logs no F12."); 
+                } 
                 finally { document.getElementById('modalLoadingIA').classList.add('hidden'); document.getElementById('inputCupom').value = ''; }
             };
             reader.readAsDataURL(arquivoCupomTemp);
@@ -933,15 +1031,23 @@
             const btn = document.getElementById('btnRelatorioIA'), resultDiv = document.getElementById('resultadoRelatorio');
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> A cruzar dados...'; btn.disabled = true;
             try {
+                window.AppLogger.log("A preparar dados para relatório Pós-Compra...");
                 const listasFin = await getDocs(getCollection('lista_compras'));
                 const lastLista = listasFin.docs.map(d=>d.data()).filter(l => l.status === 'finalizada').sort((a,b) => b.id_lista - a.id_lista)[0];
                 if(!lastLista) throw new Error("Sem listas finalizadas");
                 const itensPlan = lastLista.itens.map(i => `${i.produto} (${i.qtd})`);
                 const itensComp = dadosGlobais.filter(d => d.id_lista_vinculada === lastLista.id_lista).map(d => `${d.produto_padrao} (R$${d.valor_total})`);
+                
                 const prompt = `Analise a compra. Planeado: ${itensPlan.join(",")}. Comprado: ${itensComp.join(",")}. Diga o que comprou por impulso, o que esqueceu e dê dica de economia em HTML simples (<b>, <ul>, <li>). Português-BR.`;
                 const html = await chamarGemini(prompt, "text/plain");
+                
                 resultDiv.innerHTML = html; resultDiv.classList.remove('hidden');
-            } catch(e) { resultDiv.innerHTML = '<p class="text-red-400 font-bold">Sem dados suficientes.</p>'; resultDiv.classList.remove('hidden'); } 
+                window.AppLogger.log("Relatório gerado com sucesso.");
+            } catch(e) { 
+                window.AppLogger.error("Erro ao gerar relatório", e);
+                resultDiv.innerHTML = '<p class="text-red-400 font-bold">Sem dados suficientes para cruzar ou erro na IA. Veja o F12.</p>'; 
+                resultDiv.classList.remove('hidden'); 
+            } 
             finally { btn.innerHTML = '<i class="fa-solid fa-rotate-right mr-2"></i> Atualizar Relatório'; btn.disabled = false; }
         };
 
