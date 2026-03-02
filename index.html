@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SmartPantry - SaaS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .transition-opacity { transition: opacity 0.3s ease-in-out; }
+        .sidebar-open { transform: translateX(0); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .item-riscado { text-decoration: line-through; opacity: 0.6; background-color: #f3f4f6; border-color: #e5e7eb; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen overflow-x-hidden">
+
+    <script>
+        // --- COLOQUE A SUA URL DO APPS SCRIPT ABAIXO (SERÁ USADA PARA A MIGRAÇÃO) ---
+        const API_URL = "https://script.google.com/macros/s/AKfycbwcbOqSeyOQeyuS3exA6A3Kqej-UpzSbxihL0oTjU6LbVJnIMg5VUQ5UxuWWBL95hYy/exec"; 
+    </script>
+
+    <!-- ========================================== -->
+    <!-- TELA 1: LOGIN E REGISTO (Firebase Auth)    -->
+    <!-- ========================================== -->
+    <section id="tela-login" class="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-indigo-900 to-purple-800">
+        <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 transform transition-all relative overflow-hidden">
+            <div class="text-center mb-6">
+                <div class="bg-indigo-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                    <i class="fa-solid fa-robot text-4xl text-indigo-600"></i>
+                </div>
+                <h1 class="text-3xl font-extrabold text-gray-900">SmartPantry</h1>
+                <p class="text-gray-500 mt-1">Sua despensa inteligente</p>
+            </div>
+
+            <!-- Formulário de Login -->
+            <div id="form-login" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                    <input type="email" id="inputEmail" placeholder="voce@email.com" class="w-full bg-gray-50 border border-gray-300 rounded-xl p-3 text-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                    <div class="relative">
+                        <input type="password" id="inputSenha" placeholder="••••••••" class="w-full bg-gray-50 border border-gray-300 rounded-xl p-3 text-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all pr-12">
+                        <button type="button" onclick="toggleSenha('inputSenha', 'iconeSenha')" class="absolute inset-y-0 right-0 px-4 text-gray-400 hover:text-indigo-600 flex items-center"><i id="iconeSenha" class="fa-solid fa-eye"></i></button>
+                    </div>
+                </div>
+                <button onclick="window.fazerLogin()" id="btnEntrar" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl p-4 text-lg transition-transform transform hover:scale-[1.02] shadow-lg mt-2 flex justify-center items-center">
+                    <span>Entrar</span><i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>
+                </button>
+                <div class="text-center mt-4 border-t border-gray-100 pt-4">
+                    <p class="text-sm text-gray-500">Ainda não tem conta?</p>
+                    <button onclick="alternarFormLogin(false)" class="text-indigo-600 font-bold hover:underline mt-1">Criar nova conta</button>
+                </div>
+            </div>
+
+            <!-- Formulário de Criar Conta -->
+            <div id="form-registro" class="space-y-4 hidden">
+                <h2 class="text-center font-bold text-gray-700 mb-2 border-b pb-2">Criar Nova Conta</h2>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Nome da Família / Usuário</label>
+                    <input type="text" id="regNome" placeholder="Ex: Família Silva" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">E-mail</label>
+                    <input type="email" id="regEmail" placeholder="voce@email.com" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Senha</label>
+                    <div class="relative">
+                        <input type="password" id="regSenha" placeholder="Mínimo 6 caracteres" class="w-full bg-gray-50 border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none pr-10">
+                        <button type="button" onclick="toggleSenha('regSenha', 'iconeRegSenha')" class="absolute inset-y-0 right-0 px-3 text-gray-400 hover:text-indigo-600 flex items-center"><i id="iconeRegSenha" class="fa-solid fa-eye"></i></button>
+                    </div>
+                </div>
+                <button onclick="window.criarConta()" id="btnRegistrar" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl p-4 transition-transform transform hover:scale-[1.02] shadow-lg mt-2 flex justify-center items-center">
+                    Criar Conta
+                </button>
+                <div class="text-center mt-4 border-t border-gray-100 pt-4">
+                    <button onclick="alternarFormLogin(true)" class="text-gray-500 font-bold hover:text-indigo-600 text-sm"><i class="fa-solid fa-arrow-left mr-1"></i> Voltar ao Login</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TELA 2: APLICAÇÃO PRINCIPAL                -->
+    <!-- ========================================== -->
+    <section id="app-container" class="hidden min-h-screen bg-gray-50 pb-24">
+        
+        <nav class="bg-indigo-900 text-white p-4 shadow-lg sticky top-0 z-40">
+            <div class="container mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleSidebar()" class="text-white hover:text-indigo-200 text-2xl focus:outline-none"><i class="fa-solid fa-bars"></i></button>
+                    <h1 class="text-xl font-bold flex items-center" id="headerTitle">SmartPantry</h1>
+                </div>
+                <button onclick="window.carregarDadosGerais()" class="hover:text-indigo-200 transition-colors bg-indigo-800 p-2 rounded-lg" title="Sincronizar Dados">
+                    <i class="fa-solid fa-rotate-right" id="iconeSync"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div class="container mx-auto p-4 max-w-7xl mt-2">
+            <div class="bg-indigo-50 text-indigo-800 p-4 rounded-xl border border-indigo-200 text-center mb-4 shadow-sm" id="avisoDashboard">
+                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Conectando à nuvem segura...
+            </div>
+
+            <!-- VISTA 1: DASHBOARD -->
+            <div id="view-dashboard" class="space-y-6 hidden">
+                <div class="bg-white rounded-2xl shadow-sm p-5 border-l-4 border-indigo-500 flex justify-between items-center">
+                    <div><h2 class="text-2xl font-bold text-gray-800" id="msgBemVindo">Olá!</h2><p class="text-gray-500 text-sm">Resumo financeiro das suas compras.</p></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 flex flex-col justify-center">
+                        <div class="flex justify-between items-start mb-2"><p class="text-sm text-gray-500 font-medium">Gasto Total Histórico</p><div class="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center"><i class="fa-solid fa-wallet"></i></div></div>
+                        <p id="cardTotalGasto" class="text-3xl font-bold text-gray-800">R$ 0,00</p>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 flex flex-col justify-center">
+                        <div class="flex justify-between items-start mb-2"><p class="text-sm text-gray-500 font-medium">Ticket Médio p/ Compra</p><div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fa-solid fa-chart-line"></i></div></div>
+                        <p id="cardMediaCompra" class="text-3xl font-bold text-gray-800">R$ 0,00</p><p id="cardIdasMercado" class="text-xs text-gray-400 mt-1">0 idas ao mercado</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+                    <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center"><h3 class="text-lg font-bold text-gray-800 flex items-center"><i class="fa-solid fa-receipt text-indigo-500 mr-2"></i> Histórico Recente</h3></div>
+                    <div class="overflow-x-auto pb-2">
+                        <table class="w-full text-sm text-left text-gray-500 min-w-[600px]">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-100"><tr><th class="px-4 py-3">Data</th><th class="px-4 py-3">Local</th><th class="px-4 py-3">Produto</th><th class="px-4 py-3">Qtd</th><th class="px-4 py-3 text-right">V. Unit</th><th class="px-4 py-3 text-right">Total</th></tr></thead>
+                            <tbody id="tabelaProdutosDash"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISTA 2: DESPENSA VIRTUAL -->
+            <div id="view-despensa" class="space-y-4 hidden pb-16">
+                <div class="bg-gradient-to-r from-teal-500 to-indigo-600 rounded-2xl shadow-md p-5 text-white flex justify-between items-center">
+                    <div><h2 class="text-2xl font-bold">Estoque Atual</h2><p class="text-teal-100 text-sm opacity-90">Controle o que tem em casa</p></div><i class="fa-solid fa-box-open text-4xl opacity-50"></i>
+                </div>
+                <div class="sticky top-[72px] z-30 bg-gray-50 pt-2 pb-2">
+                    <div class="relative w-full shadow-sm rounded-xl">
+                        <select id="filtroCategoriaDespensa" onchange="renderListaDespensa()" class="w-full bg-white border border-gray-200 text-gray-700 font-bold rounded-xl p-4 appearance-none outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"><option value="Todas">🛒 Todas as Categorias</option></select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500"><i class="fa-solid fa-chevron-down"></i></div>
+                    </div>
+                </div>
+                <div id="listaDespensa" class="flex flex-col"></div>
+            </div>
+
+            <!-- VISTA 3: LISTA DE COMPRAS -->
+            <div id="view-lista" class="space-y-4 hidden pb-16">
+                <!-- Vazia -->
+                <div id="lista-vazia" class="hidden flex flex-col items-center justify-center py-12 text-center bg-white rounded-2xl shadow-sm border border-gray-100">
+                    <div class="w-24 h-24 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center text-4xl mb-4"><i class="fa-solid fa-cart-arrow-down"></i></div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">Lista Vazia</h3>
+                    <p class="text-gray-500 text-sm mb-6 max-w-xs">Peça à IA para analisar a sua despensa e o seu histórico para sugerir a lista ideal.</p>
+                    <button onclick="window.gerarListaIA()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-6 py-4 shadow-lg flex items-center gap-2 transition-transform transform hover:scale-105">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Sugestão com IA
+                    </button>
+                </div>
+                <!-- Edição -->
+                <div id="lista-edicao" class="hidden space-y-4">
+                    <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-xl flex items-start gap-3 shadow-sm">
+                        <i class="fa-solid fa-lightbulb text-yellow-500 mt-1"></i>
+                        <div><h4 class="font-bold text-yellow-800 text-sm">Sugestão da Inteligência Artificial</h4><p class="text-xs text-yellow-700 mt-1">Ajuste as quantidades ou adicione itens antes de ir ao mercado.</p></div>
+                    </div>
+                    <div id="container-itens-edicao" class="space-y-2"></div>
+                    <button onclick="window.salvarListaEditada()" id="btnSalvarListaIA" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl p-4 shadow-lg flex justify-center items-center sticky bottom-24 z-30 transition-transform">
+                        <i class="fa-solid fa-floppy-disk mr-2"></i> Confirmar e Iniciar Compras
+                    </button>
+                </div>
+                <!-- Carrinho -->
+                <div id="lista-ativa" class="hidden space-y-4">
+                    <div class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white p-4 rounded-xl flex justify-between items-center shadow-md">
+                        <div><h4 class="font-bold text-lg">Modo Mercado</h4><p class="text-xs text-indigo-200">Marque o que for colocando no carrinho.</p></div>
+                        <i class="fa-solid fa-cart-shopping text-3xl opacity-50"></i>
+                    </div>
+                    <div class="flex gap-2 sticky top-[72px] z-30 bg-gray-50 pb-2 pt-2">
+                        <button onclick="fecharSacola()" class="flex-1 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl py-3 px-2 text-sm shadow-sm hover:bg-gray-100 transition-colors">
+                            <i class="fa-solid fa-eye-slash text-indigo-500 mr-1"></i> Ocultar no Carrinho
+                        </button>
+                        <button onclick="window.finalizarListaCompras()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl py-3 px-2 text-sm shadow-sm transition-colors">
+                            <i class="fa-solid fa-check-double mr-1"></i> Finalizar Compras
+                        </button>
+                    </div>
+                    <div id="container-itens-ativos" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- VISTA 4: INSIGHTS E RELATÓRIOS -->
+            <div id="view-insights" class="space-y-6 hidden">
+                <div class="bg-gradient-to-br from-indigo-800 to-purple-900 rounded-2xl shadow-md p-6 text-white relative overflow-hidden">
+                    <i class="fa-solid fa-brain absolute -right-4 -bottom-4 text-8xl opacity-10"></i>
+                    <h3 class="text-xl font-bold mb-2 flex items-center z-10 relative"><i class="fa-solid fa-magnifying-glass-chart mr-2"></i> Análise Pós-Compra</h3>
+                    <p class="text-sm text-indigo-200 mb-5 z-10 relative">Descubra se seguiu a lista ou se comprou por impulso cruzando a lista com as Notas Fiscais.</p>
+                    <button onclick="window.gerarRelatorioPosCompra()" id="btnRelatorioIA" class="bg-white text-indigo-800 font-bold px-5 py-3 rounded-xl text-sm shadow-lg hover:bg-indigo-50 transition-colors relative z-10">
+                        <i class="fa-solid fa-wand-sparkles mr-2"></i> Gerar Relatório de Desempenho
+                    </button>
+                    <div id="resultadoRelatorio" class="mt-5 bg-black bg-opacity-20 rounded-xl p-5 text-sm hidden border border-white border-opacity-10 leading-relaxed relative z-10 space-y-2"></div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm p-4 border border-gray-100">
+                    <h3 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider"><i class="fa-regular fa-calendar-days mr-1"></i> Filtro de Período</h3>
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <div class="flex-1"><label class="text-xs text-gray-500">De:</label><input type="date" id="filtroDataInicio" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500" onchange="aplicarFiltrosInsights()"></div>
+                        <div class="flex-1"><label class="text-xs text-gray-500">Até:</label><input type="date" id="filtroDataFim" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500" onchange="aplicarFiltrosInsights()"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 flex flex-col">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4"><i class="fa-solid fa-chart-pie text-indigo-500 mr-2"></i> Gastos por Categoria</h3>
+                        <div class="relative h-64 w-full flex-1"><canvas id="graficoCategorias"></canvas></div>
+                    </div>
+                    <div class="bg-gray-900 rounded-2xl shadow-sm p-6 text-white flex flex-col">
+                        <h3 class="text-lg font-bold mb-4 text-indigo-200"><i class="fa-solid fa-search-dollar mr-2"></i> Raio-X do Produto</h3>
+                        <select id="selectProduto" onchange="analisarProduto()" class="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-white outline-none mb-6 focus:ring-2 focus:ring-indigo-500"><option value="">A carregar...</option></select>
+                        <div id="painelInsightDados" class="hidden flex-1 flex flex-col gap-4">
+                            <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                                <p class="text-xs text-indigo-300 uppercase tracking-wider mb-1">Última Compra</p>
+                                <div class="flex justify-between items-end"><div><p id="insightUltimoLocal" class="font-bold text-sm truncate max-w-[150px]">-</p><p id="insightUltimaData" class="text-xs text-gray-400">-</p></div><p id="insightUltimoPreco" class="text-2xl font-bold">R$ 0,00</p></div>
+                            </div>
+                            <div class="bg-green-900 bg-opacity-40 p-4 rounded-xl border border-green-800">
+                                <p class="text-xs text-green-400 uppercase tracking-wider mb-1"><i class="fa-solid fa-trophy mr-1"></i> Menor Preço</p>
+                                <div class="flex justify-between items-end"><div><p id="insightMenorLocal" class="font-bold text-sm text-green-100 truncate max-w-[150px]">-</p><p id="insightMenorData" class="text-xs text-green-200/50">-</p></div><p id="insightMenorPreco" class="text-2xl font-bold text-green-400">R$ 0,00</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAB: Câmera -->
+        <button onclick="document.getElementById('inputCupom').click()" class="fixed bottom-6 right-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full w-16 h-16 shadow-[0_10px_25px_rgba(79,70,229,0.5)] flex items-center justify-center text-2xl z-30 transition-transform transform hover:scale-105">
+            <i class="fa-solid fa-camera"></i>
+        </button>
+        <input type="file" id="inputCupom" accept="image/*" capture="environment" class="hidden" onchange="perguntarVinculoNF(event)">
+
+        <!-- Botão Flutuante: Salvar Despensa -->
+        <div id="containerBtnSalvar" class="fixed bottom-6 left-0 right-[90px] px-6 z-40 hidden pointer-events-none">
+            <div class="pointer-events-auto">
+                <button id="btnSalvarDespensa" onclick="window.salvarDespensaBatch()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl p-4 shadow-lg flex justify-center items-center transition-all">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i> Salvar Alterações na Despensa
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- MODAIS RESTANTES (MENU, PERFIL, NF, NOVO ITEM, LOADER) -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[60] hidden transition-opacity" onclick="toggleSidebar()"></div>
+    <div id="sidebar" class="fixed top-0 left-0 w-72 h-full bg-white shadow-2xl z-[70] transform -translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="p-6 bg-gradient-to-br from-indigo-900 to-indigo-800 text-white flex flex-col items-center relative shadow-inner">
+            <button onclick="toggleSidebar()" class="absolute top-4 right-4 text-indigo-200 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <div class="relative w-24 h-24 mb-4 group cursor-pointer" onclick="abrirModalPerfil()" title="Editar Perfil">
+                <img id="profilePic" src="" class="w-full h-full rounded-full object-cover border-4 border-indigo-400 shadow-md bg-indigo-100">
+                <div class="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-pen text-white text-xl"></i></div>
+            </div>
+            <h2 id="sidebarName" class="font-bold text-xl text-center">Usuário</h2>
+            <p id="sidebarEmail" class="text-indigo-300 text-sm text-center truncate w-full">email@email.com</p>
+        </div>
+        <div class="flex-1 overflow-y-auto py-4">
+            <p class="px-6 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 mt-2">Gestão</p>
+            <a href="#" onclick="mudarAba('dashboard')" class="flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"><i class="fa-solid fa-chart-pie w-6"></i> Dashboard</a>
+            <a href="#" onclick="mudarAba('despensa')" class="flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"><i class="fa-solid fa-box-open w-6"></i> Despensa Virtual</a>
+            <a href="#" onclick="mudarAba('lista')" class="flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 font-bold transition-colors"><i class="fa-solid fa-cart-shopping w-6"></i> Lista de Compras</a>
+            <p class="px-6 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 mt-6">Análise</p>
+            <a href="#" onclick="mudarAba('insights')" class="flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"><i class="fa-solid fa-lightbulb w-6"></i> Insights & Relatórios</a>
+        </div>
+        <div class="p-4 border-t border-gray-100 flex flex-col gap-2">
+            <!-- BOTÃO DE MIGRAÇÃO INSERIDO AQUI -->
+            <button id="btnMigrar" onclick="window.migrarDadosDoSheets()" class="w-full flex items-center justify-center py-3 text-indigo-600 border border-indigo-100 hover:bg-indigo-50 rounded-xl font-bold transition-colors"><i class="fa-solid fa-cloud-arrow-up mr-2"></i> Migrar do Sheets</button>
+            <button onclick="window.fazerLogout()" class="w-full flex items-center justify-center py-3 text-red-600 hover:bg-red-50 rounded-xl font-bold transition-colors"><i class="fa-solid fa-arrow-right-from-bracket mr-2"></i> Terminar Sessão</button>
+        </div>
+    </div>
+
+    <!-- Modal Editar Perfil -->
+    <div id="modalPerfil" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[80] p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-6 relative shadow-2xl">
+            <div id="loadingPerfil" class="hidden absolute inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center rounded-2xl z-10"><i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-2"></i><span class="text-sm font-bold text-gray-700">A guardar...</span></div>
+            <h3 class="text-lg font-bold text-gray-900 mb-4 text-center">Editar Perfil</h3>
+            <div class="flex justify-center mb-6">
+                <div class="relative w-28 h-28 group cursor-pointer" onclick="document.getElementById('inputArquivoAvatar').click()">
+                    <img id="previewAvatarModal" src="" class="w-full h-full rounded-full object-cover border-4 border-indigo-100 shadow-sm bg-gray-100">
+                    <div class="absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-camera text-white text-2xl"></i></div>
+                </div>
+                <input type="file" id="inputArquivoAvatar" accept="image/jpeg, image/png" class="hidden" onchange="window.processarAvatarParaBase64(event)">
+            </div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nome da Família / Perfil</label>
+            <input type="text" id="inputNomePerfil" class="w-full bg-gray-50 border border-gray-300 focus:border-indigo-500 outline-none rounded-xl p-3 mb-6 text-center font-bold">
+            <div class="flex gap-3">
+                <button onclick="fecharModal('modalPerfil')" class="flex-1 bg-gray-200 text-gray-700 font-bold rounded-xl p-3 hover:bg-gray-300">Cancelar</button>
+                <button onclick="window.salvarPerfilFirebase()" class="flex-1 bg-indigo-600 text-white font-bold rounded-xl p-3 hover:bg-indigo-700">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Upload NF -->
+    <div id="modalUploadNF" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[80] p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-6 text-center shadow-2xl">
+            <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fa-solid fa-receipt"></i></div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Enviar Nota Fiscal</h3>
+            <p class="text-sm text-gray-500 mb-4">Registe a sua compra para manter a sua despensa e as análises atualizadas.</p>
+            <div id="divVincularLista" class="flex flex-col items-center justify-center mb-6 bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="checkVincularLista" class="w-5 h-5 accent-indigo-600 rounded cursor-pointer">
+                    <label for="checkVincularLista" class="text-sm font-bold text-indigo-900 cursor-pointer">Vincular NF a uma lista de compras?</label>
+                </div>
+                <span id="spanIdListaVincular" class="text-[11px] mt-2 font-mono bg-white px-2 py-1 rounded shadow-sm border border-indigo-100 hidden"></span>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="fecharModal('modalUploadNF')" class="flex-1 bg-gray-200 text-gray-700 font-bold rounded-xl p-3 hover:bg-gray-300">Cancelar</button>
+                <button onclick="window.confirmarUploadCupom()" class="flex-1 bg-indigo-600 text-white font-bold rounded-xl p-3 hover:bg-indigo-700">Extrair com IA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Inserir Item Lista -->
+    <div id="modalNovoItemLista" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[85] p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 relative shadow-2xl">
+            <h3 class="text-lg font-bold text-gray-900 mb-4 text-center">Adicionar à Lista</h3>
+            <div class="space-y-4 text-left">
+                <div><label class="block text-xs font-bold text-gray-600 mb-1">Produto</label><input type="text" id="novoItemProduto" list="datalistProdutos" class="w-full bg-gray-50 border border-gray-300 rounded-xl p-3 outline-none focus:border-indigo-500" placeholder="Ex: Arroz" onchange="autoPreencherMercadoCategoria(this.value)"></div>
+                <div class="flex gap-4">
+                    <div class="flex-1"><label class="block text-xs font-bold text-gray-600 mb-1">Quantidade</label><input type="number" step="0.5" id="novoItemQtd" class="w-full bg-gray-50 border border-gray-300 rounded-xl p-3 outline-none focus:border-indigo-500 text-center" value="1"></div>
+                    <div class="flex-1"><label class="block text-xs font-bold text-gray-600 mb-1">Unidade</label><select id="novoItemUnidade" class="w-full bg-gray-50 border border-gray-300 rounded-xl p-3 outline-none focus:border-indigo-500 font-bold text-gray-700"><option value="UN">UN</option><option value="KG">KG</option><option value="L">L</option><option value="CX">CX</option></select></div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="flex-1"><label class="block text-xs font-bold text-gray-600 mb-1">Categoria</label><input type="text" id="novoItemCategoria" list="datalistCategorias" class="w-full bg-gray-50 border border-gray-300 rounded-xl p-3 outline-none focus:border-indigo-500 text-sm" placeholder="Ex: Mercearia"></div>
+                    <div class="flex-1"><label class="block text-xs font-bold text-gray-600 mb-1 flex items-center gap-1"><i class="fa-solid fa-store text-indigo-500"></i> Sugestão Local</label><input type="text" id="novoItemMercado" class="w-full bg-gray-50 border border-gray-300 rounded-xl p-3 outline-none focus:border-indigo-500 text-sm font-bold text-indigo-700" placeholder="Mercado Ideal"></div>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="fecharModal('modalNovoItemLista')" class="flex-1 bg-gray-200 text-gray-700 font-bold rounded-xl p-3 hover:bg-gray-300">Cancelar</button>
+                <button onclick="window.confirmarNovoItemLista()" class="flex-1 bg-indigo-600 text-white font-bold rounded-xl p-3 hover:bg-indigo-700">Inserir Item</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Datalists invisíveis -->
+    <datalist id="datalistProdutos"></datalist><datalist id="datalistCategorias"></datalist>
+
+    <!-- Modal Loader IA -->
+    <div id="modalLoadingIA" class="hidden fixed inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-[90]">
+        <div class="bg-white p-8 rounded-3xl flex flex-col items-center max-w-xs text-center shadow-2xl">
+            <div class="relative w-16 h-16 mb-4">
+                <i class="fa-solid fa-robot text-5xl text-indigo-600 absolute inset-0 flex items-center justify-center"></i>
+                <div class="absolute inset-0 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2" id="loadingIATitulo">A pensar...</h3>
+            <p class="text-sm text-gray-500" id="loadingIATexto">A nossa IA está a processar os dados.</p>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- LÓGICA DO FIREBASE E FRONTEND SAAS         -->
+    <!-- ========================================== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDocs, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // =========================================================================
+        // CONFIGURAÇÃO DO FIREBASE (Produção)
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDuSFFAJ6fECmjDpjnEuRuxy_snas7N4XU",
+            authDomain: "smartpantry420.firebaseapp.com",
+            projectId: "smartpantry420",
+            storageBucket: "smartpantry420.firebasestorage.app",
+            messagingSenderId: "901325477089",
+            appId: "1:901325477089:web:b82b18e6e88aac7cdc13a0",
+            measurementId: "G-ZFND4W1PVW"
+        };
+       
+        const GEMINI_API_KEY = "1BfTNaFrRAM48kqJJwZ55pc63XIi-6Tu2oGUhospYHqs"; 
+
+        let app, db, auth, analytics;
+        if (typeof __firebase_config !== 'undefined') {
+            app = initializeApp(JSON.parse(__firebase_config));
+        } else {
+            app = initializeApp(firebaseConfig);
+        }
+        
+        // Inicializa o Google Analytics para você monitorar os acessos
+        analytics = getAnalytics(app);
+        
+        auth = getAuth(app);
+        db = getFirestore(app);
+
+        // Estado Global
+        let dadosGlobais = [];       
+        let dadosDespensaGlobais = []; 
+        let listaAtivaGlobais = [];         
+        let ultimaListaFinalizadaId = null; 
+        window.itensModificadosDespensa = new Map(); 
+        let listaIA_temporaria = [];        
+        let arquivoCupomTemp = null;        
+        window.meuGrafico = null;       
+
+        const getCollection = (colName) => {
+            const uid = auth.currentUser?.uid;
+            if (!uid) throw new Error("Usuário não autenticado");
+            const basePath = typeof __firebase_config !== 'undefined' ? `artifacts/comprai/users/${uid}` : `usuarios/${uid}`;
+            return collection(db, `${basePath}/${colName}`);
+        };
+
+        const categoryStyles = {
+            'Açougue': { icon: 'fa-drumstick-bite', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200' },
+            'Carnes': { icon: 'fa-drumstick-bite', color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-200' },
+            'Hortifruti': { icon: 'fa-apple-whole', color: 'text-green-500', bg: 'bg-green-50', border: 'border-green-200' },
+            'Mercearia': { icon: 'fa-basket-shopping', color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-200' },
+            'Limpeza': { icon: 'fa-broom', color: 'text-cyan-500', bg: 'bg-cyan-50', border: 'border-cyan-200' },
+            'Higiene': { icon: 'fa-pump-soap', color: 'text-pink-500', bg: 'bg-pink-50', border: 'border-pink-200' },
+            'Bebidas': { icon: 'fa-bottle-water', color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-200' },
+            'Padaria': { icon: 'fa-bread-slice', color: 'text-yellow-500', bg: 'bg-yellow-50', border: 'border-yellow-200' },
+            'Laticínios': { icon: 'fa-cheese', color: 'text-yellow-600', bg: 'bg-yellow-100', border: 'border-yellow-300' },
+            'Congelados': { icon: 'fa-snowflake', color: 'text-sky-500', bg: 'bg-sky-50', border: 'border-sky-200' },
+            'Embalagens': { icon: 'fa-box', color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-300' },
+            'Outros': { icon: 'fa-tags', color: 'text-indigo-500', bg: 'bg-indigo-50', border: 'border-indigo-200' }
+        };
+        window.getCatStyle = (cat) => categoryStyles[cat] || categoryStyles['Outros'];
+
+        // --- SISTEMA DE AUTENTICAÇÃO FIREBASE ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                alternarTelas('app-container', 'tela-login');
+                carregarPerfilGlobal(user);
+                mudarAba('dashboard'); 
+                window.carregarDadosGerais();
+            } else {
+                alternarTelas('tela-login', 'app-container');
+            }
+        });
+
+        window.criarConta = async () => {
+            const nome = document.getElementById('regNome').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const senha = document.getElementById('regSenha').value.trim();
+            const btn = document.getElementById('btnRegistrar');
+            
+            if(!nome || !email || !senha) return alert("Preencha tudo.");
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'; btn.disabled = true;
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+                await updateProfile(userCredential.user, { displayName: nome });
+                alert("Conta SaaS criada com sucesso! Bem-vindo ao SmartPantry.");
+            } catch (err) {
+                alert("Erro ao criar conta. O e-mail pode já estar em uso ou a senha é fraca.");
+            } finally { btn.innerHTML = 'Criar Conta'; btn.disabled = false; }
+        };
+
+        window.fazerLogin = async () => {
+            const e = document.getElementById('inputEmail').value.trim(), s = document.getElementById('inputSenha').value.trim();
+            if (!e || !s) return alert("Preencha e-mail e senha.");
+            const btn = document.getElementById('btnEntrar');
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'; btn.disabled = true;
+            try {
+                await signInWithEmailAndPassword(auth, e, s);
+            } catch (err) { alert("Credenciais inválidas."); } 
+            finally { btn.innerHTML = '<span>Entrar</span><i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>'; btn.disabled = false; }
+        };
+
+        window.fazerLogout = () => signOut(auth);
+
+        function carregarPerfilGlobal(user) {
+            const n = user.displayName || user.email.split('@')[0];
+            const a = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(n)}&background=4F46E5&color=fff`;
+            document.getElementById("msgBemVindo").innerText = `Olá, ${n}!`; 
+            document.getElementById("sidebarName").innerText = n; 
+            document.getElementById("sidebarEmail").innerText = user.email; 
+            document.getElementById("profilePic").src = a;
+        }
+
+        window.processarAvatarParaBase64 = (event) => {
+            const file = event.target.files[0]; if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    if (w > h) { if (w > 150) { h *= 150/w; w = 150; } } else { if (h > 150) { w *= 150/h; h = 150; } }
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    document.getElementById('previewAvatarModal').src = canvas.toDataURL('image/jpeg', 0.6); 
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        window.salvarPerfilFirebase = async () => {
+            const nome = document.getElementById('inputNomePerfil').value.trim();
+            const avatar = document.getElementById('previewAvatarModal').src;
+            document.getElementById('loadingPerfil').classList.remove('hidden');
+            try {
+                await updateProfile(auth.currentUser, { displayName: nome, photoURL: avatar });
+                carregarPerfilGlobal(auth.currentUser);
+            } catch(e) { alert("Erro ao sincronizar perfil."); } 
+            finally { document.getElementById('loadingPerfil').classList.add('hidden'); fecharModal('modalPerfil'); }
+        };
+
+        // ==========================================
+        // MIGRAÇÃO DE DADOS (NOVO!!!)
+        // ==========================================
+        window.migrarDadosDoSheets = async () => {
+            if(!confirm("Atenção: Esta ação irá copiar os seus dados antigos do Google Sheets (Notas Fiscais, Despensa e Listas) para a sua nova conta no Firebase. Deseja continuar?")) return;
+
+            const btn = document.getElementById('btnMigrar');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> A Migrar Dados...';
+            btn.disabled = true;
+
+            try {
+                // Vai buscar os dados ao seu Google Apps Script antigo
+                const res = await fetch(`${API_URL}?action=get_dados_completos&t=${Date.now()}`);
+                const data = await res.json();
+
+                let promises = [];
+                let count = 0;
+
+                // Migrar Histórico de Notas Fiscais
+                if(data.nf && data.nf.length > 0) {
+                    data.nf.forEach(item => {
+                        promises.push(setDoc(doc(getCollection('dados_nf')), item));
+                        count++;
+                    });
+                }
+
+                // Migrar Despensa
+                if(data.despensa && data.despensa.length > 0) {
+                    data.despensa.forEach(item => {
+                        const safeId = item.produto.replace(/[^a-zA-Z0-9]/g, '_');
+                        promises.push(setDoc(doc(getCollection('despensa'), safeId), item));
+                        count++;
+                    });
+                }
+
+                // Migrar Lista Ativa (se existir)
+                if(data.lista_ativa && data.lista_ativa.length > 0) {
+                    const idLista = data.lista_ativa[0].id_lista || Date.now().toString();
+                    promises.push(setDoc(doc(getCollection('lista_compras'), idLista), {
+                        id_lista: idLista,
+                        status: 'ativa',
+                        itens: data.lista_ativa
+                    }));
+                    count++;
+                }
+
+                if(count > 0) {
+                    await Promise.all(promises); // Aguarda todas as inserções no Firebase
+                    alert(`Sucesso incrível! ${count} registos foram importados do Google Sheets para o Firebase.`);
+                    window.carregarDadosGerais(); // Atualiza o ecrã com os novos dados da nuvem
+                } else {
+                    alert("A sua planilha do Google estava vazia. Nenhum dado foi migrado.");
+                }
+
+            } catch (error) {
+                console.error("Erro na migração:", error);
+                alert("Falha ao migrar os dados. Verifique a consola ou a sua ligação.");
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        };
+
+        // --- SISTEMA DE DADOS (FIRESTORE NO LUGAR DO GOOGLE SHEETS) ---
+        window.carregarDadosGerais = async () => {
+            if(!auth.currentUser) return;
+            document.getElementById('iconeSync').classList.add('fa-spin'); 
+            document.getElementById('avisoDashboard').classList.remove('hidden');
+            
+            try {
+                const nfSnap = await getDocs(getCollection('dados_nf'));
+                dadosGlobais = nfSnap.docs.map(d => d.data()).sort((a, b) => new Date(b.data) - new Date(a.data));
+                
+                const despSnap = await getDocs(getCollection('despensa'));
+                dadosDespensaGlobais = despSnap.docs.map(d => d.data());
+
+                const listasSnap = await getDocs(getCollection('lista_compras'));
+                const listas = listasSnap.docs.map(d => d.data());
+                
+                const listaAtiva = listas.find(l => l.status === 'ativa');
+                listaAtivaGlobais = listaAtiva ? listaAtiva.itens : [];
+                
+                const listasFin = listas.filter(l => l.status === 'finalizada').sort((a,b) => b.id_lista - a.id_lista);
+                ultimaListaFinalizadaId = listasFin.length > 0 ? listasFin[0].id_lista : null;
+
+                window.preencherDatalists(); 
+                window.popularDashboard(dadosGlobais);
+
+                const abaAtual = document.getElementById('headerTitle').innerText;
+                if (abaAtual === 'Despensa Virtual') { window.preencherFiltroCategoriaDespensa(); }
+                if (abaAtual === 'Lista de Compras') { window.avaliarEstadoListaCompras(); }
+                if (abaAtual === 'Análise & Relatórios') { window.aplicarFiltrosInsights(); window.preencherSelectProdutos(); }
+
+            } catch (err) { 
+                console.error(err); 
+                document.getElementById('avisoDashboard').innerHTML = '<span class="text-red-600 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Erro ao sincronizar. Configure o Firebase no código.</span>';
+            } finally { 
+                document.getElementById('avisoDashboard').classList.add('hidden');
+                document.getElementById('iconeSync').classList.remove('fa-spin'); 
+            }
+        };
+
+        window.popularDashboard = (dados) => {
+            let gastoTotal = 0, datasUnicas = new Set();
+            dados.forEach(i => { const v = window.parseValor(i.valor_total); if (!isNaN(v)) gastoTotal += v; datasUnicas.add(i.data.split('T')[0]); });
+            document.getElementById('cardTotalGasto').innerText = window.formatarMoeda(gastoTotal);
+            document.getElementById('cardMediaCompra').innerText = window.formatarMoeda(datasUnicas.size > 0 ? (gastoTotal / datasUnicas.size) : 0);
+            document.getElementById('cardIdasMercado').innerText = `${datasUnicas.size} idas ao mercado`;
+            document.getElementById('tabelaProdutosDash').innerHTML = dados.slice(0, 15).map(i => `
+                <tr class="border-b hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500">${new Date(i.data).toLocaleDateString('pt-BR')}</td>
+                    <td class="px-4 py-3 text-xs text-gray-500 truncate max-w-[120px]">${i.local || '-'}</td>
+                    <td class="px-4 py-3 font-medium text-gray-900">${i.produto_padrao || i.produto_original}</td>
+                    <td class="px-4 py-3 text-xs font-bold text-gray-600">${i.qtd} ${i.unidade}</td>
+                    <td class="px-4 py-3 text-right text-xs text-gray-500">${window.formatarMoeda(window.parseValor(i.valor_unit))}</td>
+                    <td class="px-4 py-3 text-right font-bold text-indigo-600">${window.formatarMoeda(window.parseValor(i.valor_total))}</td>
+                </tr>`).join('');
+        };
+
+        // --- DESPENSA BATCH NO FIRESTORE ---
+        window.salvarDespensaBatch = async () => {
+            const btn = document.getElementById('btnSalvarDespensa');
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> A guardar na nuvem...';
+            try {
+                const batch = writeBatch(db);
+                dadosDespensaGlobais.forEach(item => {
+                    const safeId = item.produto.replace(/[^a-zA-Z0-9]/g, '_'); 
+                    const docRef = doc(getCollection('despensa'), safeId);
+                    batch.set(docRef, { produto: item.produto, quantidade: item.qtd, categoria: item.categoria, unidade: item.unidade }, { merge: true });
+                });
+                await batch.commit();
+                window.itensModificadosDespensa.clear(); 
+                document.getElementById('containerBtnSalvar').classList.add('hidden'); 
+            } catch(e) { console.error(e); alert("Erro ao guardar"); } 
+            finally { btn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-2"></i> Salvar Alterações na Despensa'; }
+        };
+
+        // --- LISTA DE COMPRAS NO FIRESTORE ---
+        window.salvarListaEditada = async () => {
+            const btn = document.getElementById('btnSalvarListaIA');
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> A gerar lista final...';
+            btn.disabled = true;
+            try {
+                const idLista = Date.now().toString();
+                await setDoc(doc(getCollection('lista_compras'), idLista), {
+                    id_lista: idLista,
+                    status: 'ativa',
+                    itens: listaIA_temporaria
+                });
+                listaIA_temporaria = [];
+                window.carregarDadosGerais(); 
+            } catch(e) { alert("Erro ao guardar a lista na nuvem."); btn.innerHTML = 'Confirmar e Iniciar Compras'; btn.disabled = false;}
+        };
+
+        window.toggleCheckItem = async (globalIdx) => {
+            const item = listaAtivaGlobais[globalIdx];
+            item.check = !item.check; 
+            window.renderListaAtiva(); 
+
+            if (listaAtivaGlobais.length > 0) {
+                const idL = listaAtivaGlobais[0].id_lista || listaAtivaGlobais[0].id_lista_vinculada; 
+                await updateDoc(doc(getCollection('lista_compras'), idL), { itens: listaAtivaGlobais });
+            }
+        };
+
+        window.finalizarListaCompras = async () => {
+            const faltam = listaAtivaGlobais.filter(i => !i.check).length;
+            if(!confirm(faltam > 0 ? `Faltam ${faltam} itens. Deseja finalizar?` : "Ótimo! Tudo comprado. Deseja finalizar a lista?")) return;
+            try {
+                const idL = listaAtivaGlobais[0].id_lista;
+                await updateDoc(doc(getCollection('lista_compras'), idL), { status: 'finalizada' });
+                listaAtivaGlobais = [];
+                window.avaliarEstadoListaCompras();
+                alert("Lista finalizada! Envie o cupom fiscal para a IA analisar os gastos.");
+                window.carregarDadosGerais();
+            } catch(e) {}
+        };
+
+        // --- GEMINI AI CLIENT-SIDE ---
+        async function chamarGemini(promptText, mimeType = "application/json", imageBase64 = null) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+            const parts = [{ text: promptText }];
+            if (imageBase64) parts.push({ inlineData: { mimeType: "image/jpeg", data: imageBase64 } });
+            
+            const payload = { contents: [{ parts: parts }], generationConfig: { responseMimeType: mimeType } };
+            const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            const json = await res.json();
+            if (json.error) throw new Error(json.error.message);
+            return mimeType === "application/json" ? JSON.parse(json.candidates[0].content.parts[0].text) : json.candidates[0].content.parts[0].text;
+        }
+
+        window.gerarListaIA = async () => {
+            document.getElementById('loadingIATitulo').innerText = "A planear compras...";
+            document.getElementById('modalLoadingIA').classList.remove('hidden');
+            try {
+                const despensaResumo = dadosDespensaGlobais.map(r => `${r.produto} (${r.qtd} ${r.unidade})`).join(", ");
+                const historicoResumo = dadosGlobais.slice(0, 80).map(r => `${r.produto_padrao} no ${r.local} a R$${r.valor_unit}`).join("; ");
+                const prompt = `Como assistente financeiro, crie uma Lista de Compras. Despensa: ${despensaResumo}. Histórico: ${historicoResumo}. Regras: Inclua itens com qtd 0 ou essenciais que faltam. Retorne ESTRITAMENTE array JSON: [{"produto":"Nome", "categoria":"Setor", "qtd":1, "unidade":"UN", "mercado":"Nome do Mercado", "justificativa":"Motivo"}]`;
+                
+                const lista = await chamarGemini(prompt);
+                if(lista && lista.length > 0) { listaIA_temporaria = lista; window.avaliarEstadoListaCompras(); }
+                else alert("Não existem necessidades de compra.");
+            } catch(e) { alert("Erro na IA: Verifique se inseriu a chave API."); } 
+            finally { document.getElementById('modalLoadingIA').classList.add('hidden'); }
+        };
+
+        window.gerarRelatorioPosCompra = async () => {
+            const btn = document.getElementById('btnRelatorioIA'), resultDiv = document.getElementById('resultadoRelatorio');
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> A cruzar dados...'; btn.disabled = true;
+            try {
+                const listasFin = await getDocs(getCollection('lista_compras'));
+                const lastLista = listasFin.docs.map(d=>d.data()).filter(l => l.status === 'finalizada').sort((a,b) => b.id_lista - a.id_lista)[0];
+                if(!lastLista) throw new Error("Sem listas finalizadas");
+                
+                const itensPlan = lastLista.itens.map(i => `${i.produto} (${i.qtd})`);
+                const itensComp = dadosGlobais.filter(d => d.id_lista_vinculada === lastLista.id_lista).map(d => `${d.produto_padrao} (R$${d.valor_total})`);
+                
+                const prompt = `Analise a compra. Planeado: ${itensPlan.join(",")}. Comprado: ${itensComp.join(",")}. Diga o que comprou por impulso, o que esqueceu e dê dica de economia em HTML simples (<b>, <ul>, <li>). Português-BR.`;
+                const html = await chamarGemini(prompt, "text/plain");
+                
+                resultDiv.innerHTML = html; resultDiv.classList.remove('hidden');
+            } catch(e) { resultDiv.innerHTML = '<p class="text-red-400 font-bold">Sem dados suficientes (vincule uma fatura à lista).</p>'; resultDiv.classList.remove('hidden'); } 
+            finally { btn.innerHTML = '<i class="fa-solid fa-rotate-right mr-2"></i> Atualizar Relatório'; btn.disabled = false; }
+        };
+
+        window.confirmarUploadCupom = () => {
+            fecharModal('modalUploadNF');
+            const checkVinculo = document.getElementById('checkVincularLista');
+            const vincularId = (checkVinculo && checkVinculo.checked && !checkVinculo.disabled) ? checkVinculo.dataset.idLista : null;
+            document.getElementById('loadingIATitulo').innerText = "A ler Fatura..."; document.getElementById('modalLoadingIA').classList.remove('hidden');
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const prompt = `Extrai os produtos desta fatura/talão e devolve array JSON: {"data": "YYYY-MM-DD", "local": "Nome", "produto_original": "Nome original", "produto_padrao": "Nome limpo", "qtd": 1.0, "unidade": "UN ou KG", "valor_unit": 10.50, "valor_total": 10.50, "categoria": "Açougue"}. Categorias: Açougue, Hortifruti, Mercearia, Limpeza, Higiene, Bebidas, Padaria, Laticínios, Congelados, Embalagens, Outros.`;
+                    const itens = await chamarGemini(prompt, "application/json", e.target.result.split(',')[1]);
+                    
+                    const batch = writeBatch(db);
+                    itens.forEach(item => {
+                        const safeIdProd = item.produto_padrao.replace(/[^a-zA-Z0-9]/g, '_');
+                        // Grava no Histórico NF
+                        batch.set(doc(getCollection('dados_nf')), { ...item, id_lista_vinculada: vincularId });
+                        
+                        // Atualiza Despensa (Soma ao existente)
+                        const itemExistente = dadosDespensaGlobais.find(i => i.produto === item.produto_padrao);
+                        const novaQtd = (itemExistente ? window.parseValor(itemExistente.quantidade) : 0) + window.parseValor(item.qtd);
+                        batch.set(doc(getCollection('despensa'), safeIdProd), { produto: item.produto_padrao, quantidade: novaQtd.toString(), categoria: item.categoria, unidade: item.unidade }, { merge: true });
+                    });
+                    await batch.commit();
+                    alert("Fatura processada! Os dados foram guardados na nuvem."); window.carregarDadosGerais();
+                } catch(err) { alert("Erro de comunicação com a IA."); } 
+                finally { document.getElementById('modalLoadingIA').classList.add('hidden'); document.getElementById('inputCupom').value = ''; }
+            };
+            reader.readAsDataURL(arquivoCupomTemp);
+        };
+
+        // Métodos de UI mantidos para garantir o funcionamento inline (Tornando globais)
+        window.parseValor = parseValor; window.formatarMoeda = formatarMoeda;
+        window.preencherFiltroCategoriaDespensa = preencherFiltroCategoriaDespensa; window.renderListaDespensa = renderListaDespensa; window.alterarQtdDespensa = alterarQtdDespensa;
+        window.avaliarEstadoListaCompras = avaliarEstadoListaCompras; window.renderListaEdicao = renderListaEdicao; window.renderListaAtiva = renderListaAtiva;
+        window.removerItemEdicao = removerItemEdicao; window.abrirModalNovoItem = abrirModalNovoItem; window.autoPreencherMercadoCategoria = autoPreencherMercadoCategoria;
+        window.confirmarNovoItemLista = confirmarNovoItemLista; window.fecharSacola = fecharSacola; window.perguntarVinculoNF = perguntarVinculoNF;
+        window.preencherDatalists = preencherDatalists; window.configurarFiltroDatasIniciais = configurarFiltroDatasIniciais; window.aplicarFiltrosInsights = aplicarFiltrosInsights;
+        window.preencherSelectProdutos = preencherSelectProdutos; window.analisarProduto = analisarProduto;
+    </script>
+</body>
+</html>
