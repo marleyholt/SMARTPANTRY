@@ -17,7 +17,7 @@
 <body class="bg-gray-50 text-gray-800 font-sans min-h-screen overflow-x-hidden">
 
     <script>
-        // --- COLOQUE A SUA URL DO APPS SCRIPT ABAIXO (SERÁ USADA APENAS PARA A MIGRAÇÃO) ---
+        // --- URL DO APPS SCRIPT (USADA APENAS PARA A MIGRAÇÃO) ---
         const API_URL = "https://script.google.com/macros/s/AKfycbwcbOqSeyOQeyuS3exA6A3Kqej-UpzSbxihL0oTjU6LbVJnIMg5VUQ5UxuWWBL95hYy/exec"; 
     </script>
 
@@ -383,7 +383,8 @@
         });
 
         // =========================================================================
-        // CONFIGURAÇÃO DO FIREBASE E CHAVES
+        // CONFIGURAÇÃO DO FIREBASE
+        // As chaves do Firebase abaixo podem (e devem) estar no Frontend para o SDK funcionar.
         // =========================================================================
         const firebaseConfig = {
             apiKey: "AIzaSyDuSFFAJ6fECmjDpjnEuRuxy_snas7N4XU",
@@ -395,8 +396,13 @@
             measurementId: "G-ZFND4W1PVW"
         };
        
-        // A chave API do Gemini atualizada conforme sua indicação (substituí a chave inválida por esta que funcionava no seu código)
-        const GEMINI_API_KEY = "AIzaSyAfuowioWSmyJjoJ99VR0olaMcRrCnJBgI"; 
+        // =========================================================================
+        // ⚠️ AVISO DE SEGURANÇA - CHAVE DA API GEMINI
+        // Cole a sua NOVA chave gerada aqui abaixo.
+        // É CRÍTICO que restrinja esta chave no painel do Google Cloud para aceitar 
+        // ligações APENAS do URL do seu GitHub Pages (ex: https://marleyholt.github.io/*)
+        // =========================================================================
+        const GEMINI_API_KEY = "AIzaSyAGhaJdHrIrD0etFzIbLORvO5nzACaWKUA"; 
 
         let app, db, auth, analytics;
         if (typeof __firebase_config !== 'undefined') {
